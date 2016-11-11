@@ -149,7 +149,8 @@
 
 typedef enum {
 	Setup, Idle, TurntableOn, PrepareForCleaning, NozzleDown, Cleaning,
-	NozzleUpStop, NozzleUpInward, NozzleUpOutward, WaitForArmLifting
+	CleaningMove, NozzleUpStop, NozzleUpInward, NozzleUpOutward,
+	WaitForArmLifting
 } Tmachinestate;
 
 /* Constants for the servo signal timing */

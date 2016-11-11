@@ -130,8 +130,10 @@ void initFreqGenTimer()
 	 * OC2 output set to toggle (Toggles everytime the compare matches) */
 	TCCR2 = 0 | (1<<WGM21) | (0<<WGM20) | (0<<COM21) | (1<<COM20) | devPrescale_8;
 
-	// Initial value gives a frequency of 119 kHz
-	OCR2  = 30;
+	// Initial value gives a frequency of 16 kHz
+	// 30 is correct for 45 rpm
+	// 21 is correct for 33.3 rpm
+	OCR2  = 21;
 
 	#endif
 
@@ -161,15 +163,15 @@ void initPwmUnit()
 
 }
 
-void armMotorInward(Tuint08 speed)
+void armMotorInward(Tuint16 speed)
 {
 	OCR1A = 0;
-	OCR1B = ((Tuint16)speed << 5);
+	OCR1B = ((Tuint16)speed);
 }
 
-void armMotorOutward(Tuint08 speed)
+void armMotorOutward(Tuint16 speed)
 {
-	OCR1A = ((Tuint16)speed << 5);
+	OCR1A = ((Tuint16)speed);
 	OCR1B = 0;
 }
 
@@ -282,7 +284,7 @@ void appLoop_Servo(void)
 		if(ServoRun != false) {
 			// From time to time, unspool some thread
 			if(0 == WaitCounter) {
-				WaitCounter = 30;
+				WaitCounter = 100;
 				PulseTime = RUNPULSETIME;
 			}
 			else {
@@ -349,7 +351,7 @@ void appLoop_RecordClean(void)
 				setTurntable(0);
 				setPump(0);
 				setNozzle(0);
-				armMotorOutward(255);
+				armMotorOutward(0xFFFF);
 				ServoRun = false;
 
 				WaitTimeCounter = 0;
@@ -414,7 +416,7 @@ void appLoop_RecordClean(void)
 				setTurntable(1);
 				setPump(1);
 				setNozzle(0);
-				armMotorInward(255);
+				armMotorInward(0xFFFF);
 				ServoRun = false;
 
 				/* Wait some time to debounce the arm switch */
@@ -474,7 +476,8 @@ void appLoop_RecordClean(void)
 				/* TODO: adjust motor speed while moving outwards.
 				 * We could move faster on the inner circles and would have
 				 *  to slow down when getting further away from the center */
-				armMotorOutward(10);
+				armMotorStop(0);
+				MachineState = CleaningMove;
 
 				if((LimitSwitch & devLimitSwitchOutside) == 0){
 					armMotorStop();
@@ -485,6 +488,41 @@ void appLoop_RecordClean(void)
 					armMotorStop();
 					MachineState = NozzleUpStop;
 				}
+
+				if((LimitSwitch & devLimitSwitchArm) == 0){
+					MachineState = Setup;
+				}
+
+				if((PushButton & devPushButtonFaster) == 0){
+
+				}
+				if((PushButton & devPushButtonSlower) == 0){
+
+				}
+				break;
+			case CleaningMove:
+				setTurntable(1);
+				setPump(1);
+				setNozzle(1);
+				ServoRun = true;
+
+				WaitTimeCounter = 0;
+
+				/* TODO: adjust motor speed while moving outwards.
+				 * We could move faster on the inner circles and would have
+				 *  to slow down when getting further away from the center */
+				armMotorOutward(900);
+				MachineState = Cleaning;
+
+				if((LimitSwitch & devLimitSwitchOutside) == 0){
+					armMotorStop();
+					MachineState = WaitForArmLifting;
+				}
+
+				if((PushButton & devPushButtonUpDown) == 0){
+					armMotorStop();
+					MachineState = NozzleUpStop;
+					}
 
 				if((LimitSwitch & devLimitSwitchArm) == 0){
 					MachineState = Setup;
@@ -534,7 +572,7 @@ void appLoop_RecordClean(void)
 				ServoRun = false;
 
 				if((LimitSwitch & devLimitSwitchInside) != 0)
-					armMotorInward(50);
+					armMotorInward(1600);
 				else
 					armMotorStop();
 
@@ -554,7 +592,7 @@ void appLoop_RecordClean(void)
 				ServoRun = false;
 
 				if((LimitSwitch & devLimitSwitchOutside) != 0)
-					armMotorOutward(50);
+					armMotorOutward(1600);
 				else
 					armMotorStop();
 

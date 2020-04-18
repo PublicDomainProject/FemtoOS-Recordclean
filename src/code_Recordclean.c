@@ -1,27 +1,3 @@
-/*
- * Femto OS v 0.92 - Copyright (C) 2008-2010 Ruud Vlaming
- *
- * This file is part of the Femto OS distribution.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, version 3 of the License.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Please note that, due to the GPLv3 license, for application of this
- * work and/or combined work in embedded systems special obligations apply.
- * If these are not to you liking, please know the Femto OS is dual
- * licensed. A commercial license and support are available.
- * See http://www.femtoos.org/ for details.
- */
-
 /**
  * This file is the main source for the microcontroller used in the 
  * record cleaning machine built for the Public Domain Project
@@ -42,6 +18,17 @@
  * Lower Fusebits:  0x84
  * Higher Fusebits: 0xD9
  *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -243,7 +230,7 @@ void appLoop_Background(void)
 		else
 			Live = 0;
 
-		/* Check if channel setting is changed and in case store it */
+		/* Check if tangential speed setting is changed and in case store it */
 		if(0 < ChangedTangentialSpeed) {
 			if(appEEPROMWriteDelay > ChangedTangentialSpeed)
 				ChangedTangentialSpeed++;
@@ -481,7 +468,7 @@ void appLoop_RecordClean(void)
 
 				if((LimitSwitch & devLimitSwitchOutside) == 0){
 					armMotorStop();
-					MachineState = WaitForArmLifting;
+					MachineState = CleaningEnd;
 				}
 
 				if((PushButton & devPushButtonUpDown) == 0){
@@ -511,13 +498,8 @@ void appLoop_RecordClean(void)
 				/* TODO: adjust motor speed while moving outwards.
 				 * We could move faster on the inner circles and would have
 				 *  to slow down when getting further away from the center */
-				armMotorOutward(900);
+				armMotorOutward(1500);
 				MachineState = Cleaning;
-
-				if((LimitSwitch & devLimitSwitchOutside) == 0){
-					armMotorStop();
-					MachineState = WaitForArmLifting;
-				}
 
 				if((PushButton & devPushButtonUpDown) == 0){
 					armMotorStop();
@@ -535,6 +517,23 @@ void appLoop_RecordClean(void)
 
 				}
 				break;
+			case CleaningEnd:
+				setTurntable(1);
+				setPump(1);
+				setNozzle(1);
+				ServoRun = false;
+				armMotorStop(0);
+
+				/* Wait some time to clean the edge */
+				if(WaitTimeCounter != DEBOUNCETIME)
+				{
+					WaitTimeCounter++;
+				}
+
+				if(WaitTimeCounter == DEBOUNCETIME){
+					MachineState = WaitForArmLifting;
+					WaitTimeCounter = 0;
+				}
 			case NozzleUpStop:
 				setTurntable(1);
 				setPump(1);
